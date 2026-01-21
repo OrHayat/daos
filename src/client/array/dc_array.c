@@ -769,7 +769,6 @@ dc_array_open(tse_task_t *task)
 	open_args->oid	= args->oid;
 	open_args->mode	= args->mode;
 	open_args->oh	= args->oh;
-
 	/** if this is an open_with_attr call, just add the handle CB */
 	if (args->open_with_attr) {
 		/** The upper task completes when the open task completes */

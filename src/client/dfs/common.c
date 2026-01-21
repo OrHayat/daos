@@ -536,6 +536,8 @@ entry_stat(dfs_t *dfs, daos_handle_t th, daos_handle_t oh, const char *name, siz
 			daos_obj_close(dir_oh, NULL);
 			return daos_der2errno(rc);
 		}
+		D_INFO("MTIME_DEBUG DIR: oid=" DF_OID " returned_epoch=%lu\n",
+		       DP_OID(entry.oid), (unsigned long)ep);
 
 		rc = daos_obj_close(dir_oh, NULL);
 		if (rc)
@@ -589,6 +591,8 @@ entry_stat(dfs_t *dfs, daos_handle_t th, daos_handle_t oh, const char *name, siz
 		}
 
 		size = array_stbuf.st_size;
+		D_INFO("MTIME_DEBUG FILE: oid=" DF_OID " returned_epoch=%lu\n",
+		       DP_OID(entry.oid), (unsigned long)array_stbuf.st_max_epoch);
 		rc   = update_stbuf_times(entry, array_stbuf.st_max_epoch, stbuf, obj_hlc);
 		if (rc)
 			return rc;

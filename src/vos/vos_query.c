@@ -789,8 +789,13 @@ query_write:
 	if (daos_handle_is_valid(query->qt_dkey_toh))
 		dbtree_close(query->qt_dkey_toh);
 out:
-	if (max_write != NULL && obj != NULL && obj->obj_df != NULL)
+	if (max_write != NULL && obj != NULL && obj->obj_df != NULL) {
 		*max_write = obj->obj_df->vo_max_write;
+		D_INFO("MTIME_DEBUG: oid=" DF_UOID " vo_max_write=%lu "
+		       "query_bound=%lu max_write_only=%d flags=0x%x\n",
+		       DP_UOID(oid), (unsigned long)obj->obj_df->vo_max_write,
+		       (unsigned long)query->qt_bound, max_write_only, flags);
+	}
 
 	if (obj != NULL)
 		vos_obj_release(obj, 0, false);

@@ -3555,6 +3555,8 @@ snap_time_test_setup(test_arg_t *arg, struct snap_time_test_ctx *ctx)
 
 	rc = daos_cont_create_snap(co_hdl, &ctx->snap_epoch, NULL, NULL);
 	assert_rc_equal(rc, 0);
+	print_message("MTIME_DEBUG: === SNAPSHOT CREATED epoch=%lu ===\n",
+		      (unsigned long)ctx->snap_epoch);
 	rc = dfs_mount_snap(arg->pool.poh, co_hdl, O_RDONLY, ctx->snap_epoch, NULL, &ctx->snap_dfs);
 	assert_int_equal(rc, 0);
 }
@@ -3582,6 +3584,11 @@ snap_stat_file(struct snap_time_test_ctx *ctx, test_arg_t *arg, struct stat *stb
 		rc = dfs_ostat(ctx->snap_dfs, obj, stbuf);
 		assert_int_equal(rc, 0);
 	}
+	print_message("MTIME_DEBUG: FILE stat mtime=%lu.%09lu ctime=%lu.%09lu\n",
+		      (unsigned long)stbuf->st_mtim.tv_sec,
+		      (unsigned long)stbuf->st_mtim.tv_nsec,
+		      (unsigned long)stbuf->st_ctim.tv_sec,
+		      (unsigned long)stbuf->st_ctim.tv_nsec);
 	dfs_release(obj);
 }
 
@@ -3608,6 +3615,11 @@ snap_stat_dir(struct snap_time_test_ctx *ctx, test_arg_t *arg, struct stat *stbu
 		rc = dfs_ostat(ctx->snap_dfs, obj, stbuf);
 		assert_int_equal(rc, 0);
 	}
+	print_message("MTIME_DEBUG: DIR stat mtime=%lu.%09lu ctime=%lu.%09lu\n",
+		      (unsigned long)stbuf->st_mtim.tv_sec,
+		      (unsigned long)stbuf->st_mtim.tv_nsec,
+		      (unsigned long)stbuf->st_ctim.tv_sec,
+		      (unsigned long)stbuf->st_ctim.tv_nsec);
 	dfs_release(obj);
 }
 
@@ -3688,6 +3700,8 @@ snap_time_do_modification(struct snap_time_test_ctx *ctx)
 	assert_int_equal(rc, 0);
 	dfs_release(obj);
 	dfs_release(dir_obj);
+
+	print_message("MTIME_DEBUG: === POST-SNAPSHOT MODIFICATION DONE ===\n");
 }
 
 static void
