@@ -168,6 +168,50 @@ will control the event queues and associated threads.
 In addition DFuse will always use a single main thread and a invalidation thread to manage dentry
 timeouts.
 
+### Background requests
+
+Most requests the kernel sends to DFuse, such as `stat`, `open` or `mkdir`, have an application
+thread waiting for the reply, so their concurrency is bounded by the application and by the DFuse
+thread count. The kernel sends the following as *background requests*, which are counted separately:
+
+* buffered reads, including readahead which prefetches file data during sequential reads
+* most `O_DIRECT` reads and writes, which the kernel splits into several requests sent in parallel
+* the release of a file after its last close
+
+Buffered writes are not background requests. DFuse does not enable the kernel write-back cache
+(`--enable-wb-cache` controls how DFuse itself acknowledges writes), so each write reaches DFuse as
+an ordinary request and the limits below do not apply to it.
+
+The kernel limits the number of background requests outstanding to DFuse. This limit applies on top
+of `--thread-count` and `--eq-count`, so raising the thread count does not increase readahead
+concurrency on its own. The limit is set by two options:
+
+* `--max-background` is a hard limit. When this many background requests are outstanding, new
+  read and direct I/O requests wait until one completes.
+* `--congestion-threshold` is a soft limit. When this many background requests are outstanding, the
+  kernel reads ahead only the pages that applications have asked for.
+
+`--max-background` defaults to 256, and `--congestion-threshold` defaults to three quarters of
+`--max-background`. Both values must be between 1 and 65535, and `--congestion-threshold` must not
+exceed `--max-background`, because a soft limit above the hard limit is never reached.
+
+A sequential reader typically keeps one or two read requests outstanding. Once the connection is
+congested, the kernel sends only the readahead that an application's current read needs, which for
+small application reads means small requests: with the default 128 KiB readahead window, a 4 KiB
+read turns into a 16 KiB request. Applications that read sequentially in small blocks therefore lose
+the most throughput when the limits are too low for the number of files being read in parallel.
+Raising the limits helps when many files are accessed at once over a fast network. The cost is
+memory: every outstanding request holds page cache pages in the kernel and a buffer in DFuse, so a
+higher limit allows more memory to be in use at once under heavy load. The limits have no effect
+while there is no I/O.
+
+If DFuse is started by a user without `CAP_SYS_ADMIN`, the kernel silently lowers both values to
+the `max_user_bgreq` and `max_user_congthresh` parameters of the `fuse` kernel module. These default
+to a value derived from system memory, and can be read and set under `/sys/module/fuse/parameters/`.
+The DFuse log shows the values that DFuse requested. The values in effect for a mount can be read
+as root from `/sys/fs/fuse/connections/<dev>/max_background` and `congestion_threshold`, where
+`<dev>` is the output of `stat -c %d <mountpoint>`.
+
 ### Restrictions
 
 DFuse by default is limited to a single user. Access to the filesystem from other users,
@@ -222,15 +266,17 @@ is owned by the user.
 
 Additionally, there are several optional command-line options:
 
-| **Command-line Option**    | **Description**                  |
-| -------------------------- | -------------------------------- |
-| --pool=<label\|uuid\>      | pool label or uuid to connect to |
-| --container=<label\|uuid\> | container label or uuid to open  |
-| --sys-name=<name\>         | DAOS system name                 |
-| --foreground               | run in foreground                |
-| --thread-count=<count>     | Number of threads to use         |
-| --multi-user               | Run in multi user mode           |
-| --read-only                | Mount in read-only mode          |
+| **Command-line Option**        | **Description**                                   |
+| ------------------------------ | ------------------------------------------------- |
+| --pool=<label\|uuid\>          | pool label or uuid to connect to                  |
+| --container=<label\|uuid\>     | container label or uuid to open                   |
+| --sys-name=<name\>             | DAOS system name                                  |
+| --foreground                   | run in foreground                                 |
+| --thread-count=<count>         | Number of threads to use                          |
+| --max-background=<count>       | Hard limit on outstanding background requests     |
+| --congestion-threshold=<count> | Background requests at which the kernel throttles |
+| --multi-user                   | Run in multi user mode                            |
+| --read-only                    | Mount in read-only mode                           |
 
 The `--pool` and `--container` options can also be passed as the second and third positional
 arguments.
