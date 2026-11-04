@@ -1245,18 +1245,23 @@ eq_test_ctx_limit(void **state)
 	daos_handle_t eqs[EQ_CTX_LIMIT + 1] = {0};
 	int           initial_ctx_num;
 	int           ctx_num;
+	int           max_ctx_num;
 	int           i;
 	int           rc;
 
-	rc = crt_context_num(&initial_ctx_num);
+	assert_int_equal(daos_eq_usage(NULL, &max_ctx_num), -DER_INVAL);
+	assert_int_equal(daos_eq_usage(&ctx_num, NULL), -DER_INVAL);
+
+	rc = daos_eq_usage(&initial_ctx_num, &max_ctx_num);
 	assert_int_equal(rc, 0);
+	assert_int_equal(max_ctx_num, EQ_CTX_LIMIT);
 	assert_in_range(initial_ctx_num, 0, EQ_CTX_LIMIT - 1);
 
 	for (i = 0; i < EQ_CTX_LIMIT - initial_ctx_num; i++) {
 		rc = daos_eq_create(&eqs[i]);
 		assert_int_equal(rc, 0);
 
-		rc = crt_context_num(&ctx_num);
+		rc = daos_eq_usage(&ctx_num, &max_ctx_num);
 		assert_int_equal(rc, 0);
 		assert_int_equal(ctx_num, initial_ctx_num + i + 1);
 	}
@@ -1264,7 +1269,7 @@ eq_test_ctx_limit(void **state)
 	/* An EQ beyond the context limit shares the global context. */
 	rc = daos_eq_create(&eqs[i]);
 	assert_int_equal(rc, 0);
-	rc = crt_context_num(&ctx_num);
+	rc = daos_eq_usage(&ctx_num, &max_ctx_num);
 	assert_int_equal(rc, 0);
 	assert_int_equal(ctx_num, EQ_CTX_LIMIT);
 
@@ -1273,7 +1278,7 @@ eq_test_ctx_limit(void **state)
 		assert_int_equal(rc, 0);
 	}
 
-	rc = crt_context_num(&ctx_num);
+	rc = daos_eq_usage(&ctx_num, &max_ctx_num);
 	assert_int_equal(rc, 0);
 	assert_int_equal(ctx_num, initial_ctx_num);
 }

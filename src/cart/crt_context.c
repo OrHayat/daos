@@ -1785,6 +1785,24 @@ crt_context_num(int *ctx_num)
 	return 0;
 }
 
+int
+crt_context_max_num(int *max_ctx_num)
+{
+	if (max_ctx_num == NULL) {
+		D_ERROR("invalid parameter of NULL max_ctx_num.\n");
+		return -DER_INVAL;
+	}
+
+	/* The limit is computed by crt_init(); a zeroed one would read as "no contexts allowed" */
+	if (!crt_initialized()) {
+		D_ERROR("CRT not initialized.\n");
+		return -DER_UNINIT;
+	}
+
+	*max_ctx_num = crt_gdata.cg_prov_gdata_primary.cpg_ctx_max_num;
+	return 0;
+}
+
 bool
 crt_context_empty(crt_provider_t provider, int locked)
 {

@@ -163,7 +163,8 @@ DFuse will use two types of threads: fuse threads to accept and process requests
 and event queue progress threads.  The `--thread-count` option will dictate the total number of
 threads and each eq-thread will reduce this.  Each event queue thread will create a
 daos event queue so consumes additional network resources.  The `--eq-count` option
-will control the event queues and associated threads.
+will control the event queues and associated threads.  DFuse refuses to start if `--eq-count`
+exceeds the network contexts left in the process, which `CRT_CTX_NUM` limits.
 
 In addition DFuse will always use a single main thread and a invalidation thread to manage dentry
 timeouts.

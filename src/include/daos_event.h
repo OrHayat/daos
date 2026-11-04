@@ -1,5 +1,6 @@
 /**
  * (C) Copyright 2015-2023 Intel Corporation.
+ * (C) Copyright 2026 Hewlett Packard Enterprise Development LP
  *
  * SPDX-License-Identifier: BSD-2-Clause-Patent
  */
@@ -38,7 +39,7 @@ extern "C" {
  * created will create a network (cart) context to be associated with the event queue. The network
  * context creation is an expensive operation, and the number of network context can be limited on
  * some systems. Thus, it is advisable to not create a lot of event queues in a user application or
- * middleware.
+ * middleware. daos_eq_usage() reports the limit.
  *
  * \param[out] eq	Returned EQ handle
  *
@@ -46,6 +47,27 @@ extern "C" {
  */
 int
 daos_eq_create(daos_handle_t *eqh);
+
+/**
+ * Query how many network contexts this process uses and the most it may create.
+ *
+ * Each event queue needs one context, so \a max - \a cur is the number of event queues that can
+ * still get a context of their own. Past that, daos_eq_create() succeeds but the queue shares the
+ * global context. \a cur counts that global context, so it is at least 1 before any event queue
+ * exists.
+ *
+ * The limit comes from the CRT_CTX_NUM environment variable, read at daos_init(), and defaults to
+ * the number of online cores, clamped to [18, 128]. It is an upper bound, not a reservation:
+ * contexts also need fabric resources shared across the host, which can run out sooner.
+ *
+ * \param[out] cur	Returned number of contexts in use
+ * \param[out] max	Returned maximum number of contexts
+ *
+ * \return		Zero on success, -DER_INVAL if \a cur or \a max is NULL, -DER_UNINIT if
+ *			called before daos_init()
+ */
+int
+daos_eq_usage(int *cur, int *max);
 
 #define DAOS_EQ_DESTROY_FORCE	1
 /**
