@@ -470,6 +470,8 @@ main(int argc, char **argv)
 	int                c;
 	int                rc;
 	int                rc2;
+	int                cur_ctx;
+	int                max_ctx;
 	char              *path              = NULL;
 	bool               have_thread_count = false;
 	bool               have_cong_thresh  = false;
@@ -734,6 +736,22 @@ main(int argc, char **argv)
 	start_fault_attr = d_fault_attr_lookup(100);
 
 	DFUSE_TRA_ROOT(dfuse_info, "dfuse_info");
+
+	/* Past the limit daos_eq_create() shares the global context rather than failing, so refuse
+	 * an --eq-count that cannot give every event queue its own.
+	 */
+	rc = daos_eq_usage(&cur_ctx, &max_ctx);
+	if (rc != 0) {
+		DHL_ERROR(dfuse_info, rc, "daos_eq_usage() failed");
+		D_GOTO(out_fini, rc);
+	}
+
+	if (dfuse_info->di_eq_count > max_ctx - cur_ctx) {
+		printf("--eq-count=%u exceeds the %d event queues this process can create "
+		       "(limit %d, %d in use)\n",
+		       dfuse_info->di_eq_count, max_ctx - cur_ctx, max_ctx, cur_ctx);
+		D_GOTO(out_fini, rc = -DER_INVAL);
+	}
 
 	rc = dfuse_fs_init(dfuse_info);
 	if (rc != 0)

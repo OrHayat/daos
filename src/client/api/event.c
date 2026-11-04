@@ -685,6 +685,28 @@ daos_eq_create(daos_handle_t *eqh)
 	return rc;
 }
 
+int
+daos_eq_usage(int *cur, int *max)
+{
+	int rc;
+
+	if (cur == NULL || max == NULL)
+		return -DER_INVAL;
+
+	D_MUTEX_LOCK(&daos_eq_lock);
+	if (eq_ref == 0) {
+		rc = -DER_UNINIT;
+		goto out;
+	}
+
+	rc = crt_context_num(cur);
+	if (rc == 0)
+		rc = crt_context_max_num(max);
+out:
+	D_MUTEX_UNLOCK(&daos_eq_lock);
+	return rc;
+}
+
 struct eq_progress_arg {
 	struct daos_eq_private	 *eqx;
 	unsigned int		  n_events;

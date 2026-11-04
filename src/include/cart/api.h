@@ -271,6 +271,20 @@ int
 crt_context_num(int *ctx_num);
 
 /**
+ * Query the maximum number of transport contexts this process may create.
+ *
+ * For a client the limit comes from crt_init_options_t::cio_ctx_max_num or the CRT_CTX_NUM
+ * environment variable. crt_context_create() fails with -DER_AGAIN once this many contexts exist.
+ *
+ * \param[out] max_ctx_num     pointer to the returned limit
+ *
+ * \return                     DER_SUCCESS on success, -DER_INVAL if \a max_ctx_num is NULL,
+ *                             -DER_UNINIT if called before crt_init()
+ */
+int
+crt_context_max_num(int *max_ctx_num);
+
+/**
  * Return URI associated with the context.
  *
  * \param[in] crt_ctx         CRT transport context
