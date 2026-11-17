@@ -824,7 +824,7 @@ dc_mgmt_get_iface(char *iface, size_t iface_size)
 		Mgmt__FabricInterfaces *numa_ifaces = resp_g->numa_fabric_interfaces[i];
 		int                     idx;
 
-		if (numa_ifaces->numa_node != numa)
+		if (numa_ifaces->numa_node != numa || numa_ifaces->n_ifaces == 0)
 			continue;
 
 		/*
